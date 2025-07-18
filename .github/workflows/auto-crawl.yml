@@ -24,6 +24,8 @@ jobs:
   crawl:
     name: 🚀 Crawl Documentation
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required for creating GitHub releases
     
     steps:
     - name: 📥 Checkout code
