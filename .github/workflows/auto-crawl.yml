@@ -1,0 +1,84 @@
+name: 🕷️ Auto-Crawl Documentation
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'links.txt'
+      - 'crawler.py'
+      - 'requirements.txt'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'links.txt'
+      - 'crawler.py'
+      - 'requirements.txt'
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for manual trigger'
+        required: false
+        default: 'Manual crawl requested'
+
+jobs:
+  crawl:
+    name: 🚀 Crawl Documentation
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🐍 Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: 🔧 Install GNU Make (required for Makefile)
+      run: |
+        # Ubuntu comes with GNU Make by default, but ensure it's available
+        make --version
+        
+    - name: 🚀 Run complete CI pipeline via Makefile
+      run: |
+        # Use the Makefile's ci-ready target for consistency
+        make ci-ready
+        
+    - name: 📦 Upload crawl results
+      uses: actions/upload-artifact@v4
+      with:
+        name: flink-docs-crawl-results
+        path: |
+          out/llms.txt
+          out/crawl-summary.md
+          links.txt
+        retention-days: 30
+        
+    - name: 🎯 Create GitHub Release (on main branch)
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: crawl-${{ github.run_number }}
+        name: 🕷️ Documentation Crawl Results
+        body_path: out/crawl-summary.md
+        files: |
+          out/llms.txt
+          links.txt
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: 📊 Job summary
+      run: |
+        echo "## 🕷️ Crawl Completed Successfully! 🎉" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📊 Statistics" >> $GITHUB_STEP_SUMMARY
+        echo "- **Links processed:** $(grep -c '^https' links.txt || echo 0)" >> $GITHUB_STEP_SUMMARY
+        echo "- **Output lines:** $(wc -l < out/llms.txt)" >> $GITHUB_STEP_SUMMARY
+        echo "- **Output size:** $(du -h out/llms.txt | cut -f1)" >> $GITHUB_STEP_SUMMARY
+        echo "- **Crawl date:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🔗 Artifacts" >> $GITHUB_STEP_SUMMARY
+        echo "- Download the crawl results from the **Artifacts** section above" >> $GITHUB_STEP_SUMMARY
+        echo "- On main branch pushes, results are also available as a GitHub Release" >> $GITHUB_STEP_SUMMARY

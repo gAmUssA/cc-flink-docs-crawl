@@ -1,0 +1,101 @@
+name: 🧪 Smoketest
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run daily at 9 AM UTC
+    - cron: '0 9 * * *'
+
+jobs:
+  smoketest:
+    name: 🚀 Smoketest
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, '3.10', '3.11']
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🐍 Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        
+    - name: 📦 Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: 🔍 Check code syntax
+      run: |
+        python -m py_compile crawler.py
+        
+    - name: 📝 Validate links.txt exists
+      run: |
+        if [ ! -f "links.txt" ]; then
+          echo "❌ links.txt not found"
+          exit 1
+        fi
+        if [ ! -s "links.txt" ]; then
+          echo "❌ links.txt is empty"
+          exit 1
+        fi
+        echo "✅ Found $(wc -l < links.txt) URLs in links.txt"
+        
+    - name: 🧪 Test crawler dry run
+      run: |
+        # Create a minimal test to verify crawler can start
+        python -c "
+        import sys
+        sys.path.insert(0, '.')
+        from crawler import FlinkDocsCrawler
+        
+        crawler = FlinkDocsCrawler()
+        links = crawler.load_links()
+        print(f'✅ Loaded {len(links)} links')
+        
+        # Test content extraction with a simple example
+        content = crawler.extract_content('https://httpbin.org/html')
+        print(f'✅ Content extraction test passed')
+        
+        print('🎉 Smoketest completed successfully!')
+        "
+        
+    - name: 📊 Display environment info
+      run: |
+        echo "🐍 Python version: $(python --version)"
+        echo "📦 Pip version: $(pip --version)"
+        echo "🔧 Platform: $(uname -a)"
+        
+  security-check:
+    name: 🔒 Security Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🐍 Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: 🔒 Install and run safety check
+      run: |
+        pip install safety
+        safety check -r requirements.txt
+        
+    - name: 📋 Check for secrets
+      run: |
+        # Basic check for common secret patterns
+        if grep -r -i "password\|secret\|key\|token" --include="*.py" --include="*.txt" --include="*.md" .; then
+          echo "⚠️  Potential secrets found - please review"
+        else
+          echo "✅ No obvious secrets detected"
+        fi
