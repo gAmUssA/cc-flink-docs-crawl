@@ -1,6 +1,7 @@
 # Flink-Related Links from Confluent Cloud Documentation
 # Source: https://docs.confluent.io/cloud/current/flink/overview.html
 # Extracted: 72 unique Flink-related links
+# Updated: 2025-07-18 - Testing release artifact creation
 
 https://docs.confluent.io/cloud/current/topics/tableflow/how-to-guides/query-engines/query-with-flink.html
 https://docs.confluent.io/cloud/current/flink/index.html
