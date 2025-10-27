@@ -47,7 +47,7 @@ jobs:
         make ci-ready
         
     - name: 📦 Upload crawl results
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: flink-docs-crawl-results
         path: |
